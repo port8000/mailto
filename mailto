@@ -1,0 +1,205 @@
+#!/usr/bin/perl -w
+
+use strict;
+use Pod::Usage;
+use Getopt::Long;
+    Getopt::Long::Configure ("bundling");
+use Cwd;
+use File::Spec;
+use File::Which;
+
+sub addr;
+
+##########  C O N F I G  ##########
+
+# thunderbird executable
+our $mailclient = which("thunderbird");
+
+# shortcuts
+our %shortcuts = (
+    'foo' => 'bar'
+);
+
+# options
+our %o;
+
+do "$ENV{HOME}/.mailtorc";
+
+########## / C O N F I G ##########
+
+
+##########  G E T O P T  ##########
+
+if (! $mailclient) {
+    print "No Thunderbird found.";
+    exit 1;
+}
+
+# kick it
+GetOptions (\%o,
+    "help|h|?",
+    "list-shortcuts|l",
+    "debug|d",
+    "attach|a=s@",
+    "subject|s=s",
+    "body|b|message|m=s"
+) || pod2usage (2);
+# exit, if necessary
+pod2usage (-exitval => 0, -verbose => 2) if $o{'help'};
+
+########## / G E T O P T ##########
+
+
+##########  M A I N   B R A N C H  ##########
+
+if ($o{'list-shortcuts'}) {
+    foreach (keys %shortcuts) {
+        print "$_\t$shortcuts{$_}\n";
+    }
+    exit 0;
+}
+
+my $address = join(",", map(&addr, @ARGV));
+
+my $cwd = cwd;
+my $cyg = 0;
+if (which("cygpath")) {
+    $cwd = "/".`cygpath -m $cwd`;
+    chomp $cwd;
+    $cyg = 1;
+}
+
+my $body = "";
+if (exists $o{'body'}) {
+  $body = $o{'body'};
+  $body =~ s/([^a-zA-Z0-9_.-])/uc sprintf("%%%02x",ord($1))/eg;
+}
+my $head = "to='$address'";
+$head .= ",subject='".$o{'subject'}."'" if exists $o{'subject'};
+if (exists $o{'attach'}) {
+  $head .= ",attachment='";
+  my @ats;
+  my $path;
+  foreach (@{$o{'attach'}}) {
+    if ($cyg) {
+        $path = `cygpath -m -a "$_"`;
+    } else {
+        $path = File::Spec->rel2abs($_);
+    }
+    chomp $path;
+    push(@ats, 'file://'.$path);
+  }
+  $head .= join ",", @ats;
+  $head .= "'";
+}
+$head .= ",body='$body'" if $body;
+
+print "$mailclient -compose \"$head\"\n" if $o{'debug'};
+`$mailclient -compose "$head"`;
+
+# FINISHED!
+exit 0;
+
+########## / M A I N   B R A N C H  ##########
+
+
+########## S U B S ############
+sub addr {
+  my $addr = $_;
+  if (exists $shortcuts{$addr}) {
+    return $shortcuts{$addr};
+  } else {
+    return $addr;
+  }
+}
+######### / S U B S ###########
+
+__END__
+=encoding utf8
+
+=head1 NAME
+
+mailto - send an e-mail via thunderbird
+
+=head1 SYNOPSIS
+
+mailto [B<OPTIONS>] [B<NAME> ...]
+
+where B<NAME> are the target email addresses. If any B<NAME> is a known 
+shortcut, it will be substituted.
+
+=head1 DESCRIPTION
+
+Send an e-mail via thunderbird.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-a, --attach>
+
+    attach a file to the e-mail
+
+=item B<-h, -?, --help>
+
+    print a help message
+
+=item B<-l, --list-shortcuts>
+
+    display all known shortcuts
+
+=item B<-m, -b, --body>
+
+    specify the body of the e-mail
+
+=item B<-s, --subject>
+
+    specify the subject
+
+=back
+
+=head1 SHORTCUTS
+
+To create short mnemonics for email addresses, create a
+~/.mailtorc file with the following content:
+
+    $shortcuts{ 'ae' } = 'alice@example.com';
+    $shortcuts{ 'be' } = 'bob@example.com';
+
+Then you can use 'ae' and 'be' as shortcuts for Alice's and Bob's
+full email address.
+
+=head1 EXAMPLE
+
+Say, ae is a shortcut for 'alice@example.com', then a call to
+
+    mailto -s 'Hi' ae
+
+sends an e-mail to Alice with the subject line 'Hi'.
+
+=head1 INSTALLATION
+
+This program should run I<almost> out of the box. The only non-standard
+CPAN package needed is File::Which. On Debian and Ubuntu, run
+
+    sudo apt-get install libfile-which-perl
+
+On other systems with the cpan program installed, run
+
+    cpan File::Which
+
+to install it. Then just drop mailto somewhere in your PATH, make sure,
+the Thunderbird executable is there, too, and you're set. (That is, if
+you can type "thunderbird" on the same prompt as you'd type "mailto",
+and something happens, mailto will work.)
+
+=head1 AUTHOR
+
+Manuel Strehl, <m.strehl@port8000.de>
+
+=head1 COPYRIGHT
+
+(C) 2012 Port 8000 GmbH, E<lt>http://www.port8000.de/E<gt>
+
+=cut
+

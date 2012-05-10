@@ -1,0 +1,73 @@
+MAILTO(1)             User Contributed Perl Documentation            MAILTO(1)
+
+
+
+NAME
+       mailto - send an e-mail via thunderbird
+
+SYNOPSIS
+       mailto [OPTIONS] [NAME ...]
+
+       where NAME are the target email addresses. If any NAME is a known
+       shortcut, it will be substituted.
+
+DESCRIPTION
+       Send an e-mail via thunderbird.
+
+OPTIONS
+       -a, --attach
+               attach a file to the e-mail
+
+       -h, -?, --help
+               print a help message
+
+       -l, --list-shortcuts
+               display all known shortcuts
+
+       -m, -b, --body
+               specify the body of the e-mail
+
+       -s, --subject
+               specify the subject
+
+SHORTCUTS
+       To create short mnemonics for email addresses, create a ~/.mailtorc
+       file with the following content:
+
+           $shortcuts{ 'ae' } = 'alice@example.com';
+           $shortcuts{ 'be' } = 'bob@example.com';
+
+       Then you can use 'ae' and 'be' as shortcuts for Alice's and Bob's full
+       email address.
+
+EXAMPLE
+       Say, ae is a shortcut for 'alice@example.com', then a call to
+
+           mailto -s 'Hi' ae
+
+       sends an e-mail to Alice with the subject line 'Hi'.
+
+INSTALLATION
+       This program should run almost out of the box. The only non-standard
+       CPAN package needed is File::Which. On Debian and Ubuntu, run
+
+           sudo apt-get install libfile-which-perl
+
+       On other systems with the cpan program installed, run
+
+           cpan File::Which
+
+       to install it. Then just drop mailto somewhere in your PATH, make sure,
+       the Thunderbird executable is there, too, and you're set. (That is, if
+       you can type "thunderbird" on the same prompt as you'd type "mailto",
+       and something happens, mailto will work.)
+
+AUTHOR
+       Manuel Strehl, <m.strehl@port8000.de>
+
+COPYRIGHT
+       (C) 2012 Port 8000 GmbH, <http://www.port8000.de/>
+
+
+
+perl v5.12.4                      2012-05-10                         MAILTO(1)
